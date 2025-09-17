@@ -1,0 +1,5 @@
+{
+  "include_roles": true,
+  "redact_fields": ["ssn", "dob", "token"]
+}
+

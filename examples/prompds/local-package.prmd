@@ -1,0 +1,25 @@
+---
+name: local-api-get-user-info-base
+version: 1.0.0
+description: Local wrapper that inherits the API toolkit's get-user-info and adds org defaults
+
+# Directly inherit from the packaged prompt (no prefix needed here)
+inherits: "@prompd.io/api-toolkit@1.2.1/prompds/get-user-info.prompd"
+
+parameters:
+  - name: include_roles
+    type: boolean
+    default: true
+    description: Include role information in the response
+  - name: redact_fields
+    type: array
+    default: ["ssn", "dob"]
+    description: Fields to redact from the output
+---
+
+# System
+You enforce secure API usage, apply organizational defaults, and redact sensitive fields.
+
+# User
+Return the current user's profile with roles: {{include_roles}}.
+
