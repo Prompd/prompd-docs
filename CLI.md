@@ -145,6 +145,7 @@ prompd validate <file> [options]
 - `-v, --verbose` - Show detailed validation results
 - `--git` - Include git history consistency checks
 - `--version-only` - Only validate version-related aspects
+- `--check-overrides` - Validate section overrides against parent template
 
 #### Examples
 
@@ -160,6 +161,12 @@ prompd validate prompt.prmd --git
 
 # Version validation only
 prompd validate prompt.prmd --version-only
+
+# Validate section overrides
+prompd validate child-template.prmd --check-overrides
+
+# Detailed override validation
+prompd validate child-template.prmd --check-overrides --verbose
 ```
 
 #### Validation Checks
@@ -170,6 +177,36 @@ prompd validate prompt.prmd --version-only
 - Parameter definitions
 - Variable references
 - Type consistency
+- **Section override validation** (with `--check-overrides`):
+  - Override section IDs exist in parent template
+  - Override files exist and are accessible
+  - Parent template file exists and is valid
+  - Typo detection with suggestions
+
+#### Override Validation Output
+
+**Success:**
+```
+✓ child-template.prmd is valid
+```
+
+**With Warnings:**
+```
+WARNINGS (1):
+  - Override validation: Override section 'system-promtp' not found in parent template. Did you mean: system-prompt?
+
+✓ child-template.prmd has warnings
+```
+
+**Verbose Output:**
+```
+Override Validation Results:
+  ! Override section 'examples-old' not found in parent template. Available sections: system-prompt, examples, analysis-framework
+  ✓ Override 'system-prompt': ./healthcare-system.md
+  ✓ Override 'examples': [REMOVED]
+
+✓ child-template.prmd is valid
+```
 
 ### `prompd git`
 
@@ -425,28 +462,60 @@ prompd list --detailed
 Display the structure and parameters of a .prmd file.
 
 ```bash
-prompd show <file>
+prompd show <file> [options]
 ```
 
-#### Output Includes
+#### Options
+- `--sections` - Show available section IDs for override reference
+- `--verbose` - Show detailed section information including content length
+
+#### Basic Output Includes
 - Name and version
 - Description
 - Parameter definitions
 - Content structure
 - Required fields
+- Inheritance information
+- Section overrides (if present)
 
-### `prompd provider`
+#### Section Discovery
+```bash
+# Show sections available for override
+prompd show template.prmd --sections
 
-Manage LLM providers including custom/local providers.
+# Show detailed section information
+prompd show template.prmd --sections --verbose
+```
+
+**Example Output:**
+```
+Available Sections for Override
+┌──────────────────────┬──────────────────────────────┬────────────────┐
+│ Section ID           │ Heading Text                 │ Content Length │
+├──────────────────────┼──────────────────────────────┼────────────────┤
+│ system-prompt        │ # System Prompt              │            312 │
+│ analysis-framework   │ ## Analysis Framework        │          1,247 │
+│ examples             │ ### Examples                 │            634 │
+└──────────────────────┴──────────────────────────────┴────────────────┘
+
+Override Usage Example:
+override:
+  system-prompt: "./custom-system-prompt.md"
+  examples: null  # Remove section
+```
+
+### `prompd config`
+
+Configuration management commands for providers, registries, and settings.
 
 #### Subcommands
 
-##### `prompd provider list`
+##### `prompd config provider list`
 
 List all available providers (built-in and custom).
 
 ```bash
-prompd provider list
+prompd config provider list
 ```
 
 Shows:
@@ -466,12 +535,12 @@ Example output:
 └────────────────────────────────────────┘
 ```
 
-##### `prompd provider add`
+##### `prompd config provider add`
 
 Add a custom LLM provider with OpenAI-compatible API.
 
 ```bash
-prompd provider add <name> <base_url> <models...> [options]
+prompd config provider add <name> <base_url> <models...> [options]
 ```
 
 **Arguments:**
@@ -487,35 +556,35 @@ prompd provider add <name> <base_url> <models...> [options]
 
 ```bash
 # Add local Ollama instance
-prompd provider add local-ollama http://localhost:11434/v1 \
+prompd config provider add local-ollama http://localhost:11434/v1 \
   llama3.2 qwen2.5 mixtral
 
 # Add Groq with API key
-prompd provider add groq https://api.groq.com/openai/v1 \
+prompd config provider add groq https://api.groq.com/openai/v1 \
   llama-3.1-8b-instant mixtral-8x7b-32768 \
   --api-key gsk_...
 
 # Add local LM Studio
-prompd provider add lmstudio http://localhost:1234/v1 \
+prompd config provider add lmstudio http://localhost:1234/v1 \
   local-model
 
 # Add Together AI
-prompd provider add together https://api.together.xyz/v1 \
+prompd config provider add together https://api.together.xyz/v1 \
   mistralai/Mixtral-8x7B-Instruct-v0.1 \
   --api-key your-api-key
 ```
 
-##### `prompd provider show`
+##### `prompd config provider show`
 
 Show detailed information about a specific provider.
 
 ```bash
-prompd provider show <name>
+prompd config provider show <name>
 ```
 
 **Example:**
 ```bash
-prompd provider show local-ollama
+prompd config provider show local-ollama
 ```
 
 Output includes:
@@ -525,12 +594,12 @@ Output includes:
 - Available models
 - Configuration details
 
-##### `prompd provider remove`
+##### `prompd config provider remove`
 
 Remove a custom provider.
 
 ```bash
-prompd provider remove <name> [options]
+prompd config provider remove <name> [options]
 ```
 
 **Options:**
@@ -539,15 +608,15 @@ prompd provider remove <name> [options]
 **Examples:**
 ```bash
 # Remove with confirmation
-prompd provider remove local-ollama
+prompd config provider remove local-ollama
 
 # Remove without confirmation
-prompd provider remove groq-api --yes
+prompd config provider remove groq-api --yes
 ```
 
 #### Custom Provider Configuration
 
-Custom providers are stored in `~/.prmd/config.yaml`:
+Custom providers are stored in `~/.prompd/config.yaml`:
 
 ```yaml
 custom_providers:
@@ -600,6 +669,102 @@ prompd validate prompt.prmd  # Works with any provider
 prompd show prompt.prmd
 ```
 
+##### `prompd config provider setkey`
+
+Set or update API key for a provider.
+
+```bash
+prompd config provider setkey <provider_name> <api_key>
+```
+
+**Examples:**
+```bash
+# Set API key for OpenAI
+prompd config provider setkey openai sk-...
+
+# Set API key for custom provider
+prompd config provider setkey local-ollama your-api-key
+```
+
+##### `prompd config show`
+
+Show all configuration settings.
+
+```bash
+prompd config show
+```
+
+Displays:
+- Default provider and model settings
+- All configured custom providers
+- Registry configurations
+- API key status (masked for security)
+- Global settings (timeout, retries, etc.)
+
+##### `prompd config registry list`
+
+List all configured registries.
+
+```bash
+prompd config registry list
+```
+
+##### `prompd config registry add`
+
+Add a new registry configuration.
+
+```bash
+prompd config registry add <name> <url> [options]
+```
+
+**Options:**
+- `--api-key KEY` - Registry authentication API key
+- `--set-default` - Set as default registry
+
+**Examples:**
+```bash
+# Add local registry
+prompd config registry add local http://localhost:4000
+
+# Add private registry with API key
+prompd config registry add company https://registry.company.com \
+  --api-key prompd_... --set-default
+```
+
+##### `prompd config registry remove`
+
+Remove a registry configuration.
+
+```bash
+prompd config registry remove <name>
+```
+
+##### `prompd config registry set-default`
+
+Set the default registry.
+
+```bash
+prompd config registry set-default <name>
+```
+
+##### `prompd config registry show`
+
+Show registry details.
+
+```bash
+prompd config registry show [name]
+```
+
+#### Alias Commands
+
+For convenience, the following alias commands are available:
+
+```bash
+# These are equivalent:
+prompd config providers     # Alias for 'prompd config provider list'
+prompd config registries    # Alias for 'prompd config registry list'
+```
+
 ### `prompd providers`
 
 List available LLM providers and their models.
@@ -630,29 +795,33 @@ export PROMPD_DEFAULT_MODEL="gpt-4"
 
 ### Configuration File
 
-Create `~/.prmd/config.json`:
+Create `~/.prompd/config.yaml`:
 
-```json
-{
-  "default_provider": "openai",
-  "default_model": "gpt-4",
-  "timeout": 30,
-  "max_retries": 3,
-  "providers": {
-    "openai": {
-      "api_key": "sk-...",
-      "organization": "org-...",
-      "base_url": "https://api.openai.com/v1"
-    },
-    "anthropic": {
-      "api_key": "sk-ant-...",
-      "base_url": "https://api.anthropic.com"
-    },
-    "ollama": {
-      "host": "http://localhost:11434"
-    }
-  }
-}
+```yaml
+default_provider: openai
+default_model: gpt-4
+timeout: 30
+max_retries: 3
+verbose: false
+api_keys:
+  openai: sk-...
+  anthropic: sk-ant-...
+custom_providers:
+  local-ollama:
+    base_url: http://localhost:11434/v1
+    models:
+      - llama3.2
+      - qwen2.5
+    enabled: true
+registry:
+  default: prompdhub
+  registries:
+    prompdhub:
+      url: https://registry.prompdhub.ai
+      api_key: null
+    local:
+      url: http://localhost:4000
+      api_key: prompd_...
 ```
 
 ### Parameter Files

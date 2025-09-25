@@ -91,7 +91,7 @@ Run this plan? (Y/n)
 Implementation notes
 - Python-only initial implementation; Node/Go parity will follow after behavior stabilizes
 - Packaged assets are loaded via `importlib.resources`; local overrides can be used for iteration
-- Provider/model defaults: shell and run honor `~/.prmd/config.yaml` (`default_provider`, `default_model`)
+- Provider/model defaults: shell and run honor `~/.prompd/config.yaml` (`default_provider`, `default_model`)
 - Meta overrides: `--meta:{section}` supported for execution (system/user/context/response or custom sections)
 
 ## Shell & Chat UI (Python)
@@ -152,7 +152,7 @@ Serve `.prmd`/`.pdflow` over HTTP with simple MCP‑style endpoints.
   - `GET /compile?to=markdown&params=…` → compiled result
   - `POST /run { provider, model, params, meta, version }` → execute and return `{ content, usage, model }`
 - Auth: optional bearer presence check when OAuth flags supplied (extendable to JWT validation)
-- Defaults/meta: honors `~/.prmd/config.yaml` & meta section overrides (system/user/context)
+- Defaults/meta: honors `~/.prompd/config.yaml` & meta section overrides (system/user/context)
 
 Install extras (local):
 ```bash
@@ -174,7 +174,7 @@ What it does
 
 ## Configuration
 
-`~/.prmd/config.yaml`
+`~/.prompd/config.yaml`
 ```yaml
 default_provider: openai
 default_model: gpt-4o
@@ -332,7 +332,7 @@ Compile and run
 # Compile to markdown
 prompd compile prompds/greeting.prmd --to-markdown -o greeting.md
 
-# Run with defaults from ~/.prmd/config.yaml
+# Run with defaults from ~/.prompd/config.yaml
 prompd run prompds/greeting.prmd -p name="Alex" -p tone=formal --format json
 ```
 

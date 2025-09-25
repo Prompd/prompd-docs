@@ -150,7 +150,7 @@ Enterprise registries can specify fallback registries for accessing public packa
 The CLI automatically handles registry discovery:
 
 ```yaml
-# ~/.prmd/config.yaml
+# ~/.prompd/config.yaml
 registries:
   default: company.prompdhub.ai
   registries:

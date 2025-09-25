@@ -184,8 +184,8 @@ prompd login
 prompd login your-api-token-here
 
 # Verify authentication
-prompd registry whoami
-# Output: Logged in as: your-username@organization.com
+prompd config show
+# Output shows current registry configuration and authentication status
 ```
 
 ### Publishing Packages
@@ -244,7 +244,7 @@ prompd deps-install @security/toolkit  # Installs package + all dependencies
 # View cache information
 prompd cache info
 # Output:
-# Cache location: ~/.prmd/cache/
+# Cache location: ~/.prompd/cache/
 # Cached packages: 15
 # Total cache size: 2.3 MB
 
@@ -371,33 +371,30 @@ parameters:
     description: "Scope of the security analysis"
 ---
 
-# Security Analysis: {{target_name}}
+# Security Analysis: {target_name}
 
-## Analysis Scope: {{analysis_scope}}
+## Analysis Scope: {analysis_scope}
 
-You are conducting a security analysis of {{target_name}}. Follow industry best practices and provide detailed, actionable recommendations.
+You are conducting a security analysis of {target_name}. Follow industry best practices and provide detailed, actionable recommendations.
 
-{{#switch analysis_scope}}
-{{#case "basic"}}
+{% if analysis_scope %}
+{% elif analysis_scope == "basic" %}
 ### Basic Security Review
 - Review authentication mechanisms
 - Check for common vulnerabilities
 - Validate input handling
-{{/case}}
-{{#case "comprehensive"}}
+{% elif analysis_scope == "comprehensive" %}
 ### Comprehensive Security Assessment
 - Complete threat modeling
 - OWASP Top 10 evaluation
 - Penetration testing approach
 - Risk assessment and prioritization
-{{/case}}
-{{#case "compliance"}}
+{% elif analysis_scope == "compliance" %}
 ### Compliance-Focused Analysis
 - Regulatory requirement verification
 - Control effectiveness assessment
 - Gap analysis and remediation planning
-{{/case}}
-{{/switch}}
+{% endif %}
 ```
 
 **Step 3: Create Specialized Prompts**
@@ -430,12 +427,12 @@ parameters:
     description: "Type of authentication mechanism"
 ---
 
-## Web Application Security Audit: {{target_name}}
+## Web Application Security Audit: {target_name}
 
 ### Application Details
-- **URL**: {{application_url}}
-- **Technology Stack**: {{technology_stack}}  
-- **Authentication**: {{authentication_type}}
+- **URL**: {application_url}
+- **Technology Stack**: {technology_stack}  
+- **Authentication**: {authentication_type}
 
 ### OWASP Top 10 Assessment
 
@@ -443,38 +440,35 @@ Conduct systematic evaluation against OWASP Top 10 vulnerabilities:
 
 1. **A01:2021 – Broken Access Control**
    - Test vertical and horizontal privilege escalation
-   - Verify authorization controls on {{application_url}}
+   - Verify authorization controls on {application_url}
    - Check for direct object references
 
 2. **A02:2021 – Cryptographic Failures**
-   - Analyze encryption implementation in {{technology_stack}}
+   - Analyze encryption implementation in {technology_stack}
    - Review data transmission security
    - Validate certificate configuration
 
-{{#switch authentication_type}}
-{{#case "jwt"}}
+{% if authentication_type %}
+{% elif authentication_type == "jwt" %}
 3. **Authentication Security (JWT Focus)**
    - JWT token validation and signature verification
    - Token expiration and refresh mechanism review
    - Algorithm security assessment
-{{/case}}
-{{#case "oauth2"}}
+{% elif authentication_type == "oauth2" %}
 3. **Authentication Security (OAuth 2.0 Focus)**  
    - OAuth flow security assessment
    - Scope validation and privilege management
    - Authorization code security
-{{/case}}
-{{#default}}
-3. **Authentication Security ({{authentication_type}})**
+{% else %}
+3. **Authentication Security ({authentication_type})**
    - Authentication mechanism security review
    - Session management assessment
    - Password policy validation
-{{/default}}
-{{/switch}}
+{% endif %}
 
 ### Technology-Specific Testing
 
-For {{technology_stack}} applications:
+For {technology_stack} applications:
 - Framework-specific vulnerability assessment
 - Dependency security analysis  
 - Configuration security review
@@ -557,7 +551,7 @@ prompd install @security/toolkit@1.0.0
 
 # Check installation location
 prompd cache info
-# Package installed to: ~/.prmd/cache/@security/toolkit/1.0.0/
+# Package installed to: ~/.prompd/cache/@security/toolkit/1.0.0/
 
 # Use package in new prompt
 ```
@@ -579,11 +573,11 @@ parameters:
 
 ## Additional Security Checks
 
-{{#each custom_checks}}
-### {{this}} Assessment
-- Specialized testing for {{this}}
+{% for item in custom_checks %}
+### {item} Assessment
+- Specialized testing for {item}
 - Industry-specific best practices
-{{/each}}
+{% endfor %}
 ```
 
 **Compile with Package Dependencies:**
@@ -745,8 +739,8 @@ prompd versions @scope/package-name
 
 **Error: "Registry connection failed"**
 ```bash
-# Check registry URL
-prompd registry list
+# Check registry configuration
+prompd config registry list
 
 # Test connection  
 curl -f https://registry.prompdhub.ai/health

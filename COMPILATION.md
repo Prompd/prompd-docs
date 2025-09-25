@@ -129,7 +129,7 @@ function authenticate(user, password) {
 </head>
 <body>
     <header class="header">
-        <h1>{{title}}</h1>
+        <h1>{title}</h1>
     </header>
 </body>
 </html>

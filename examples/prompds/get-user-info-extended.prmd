@@ -27,5 +27,5 @@ contexts:
 You extend the base behavior to include extra validation and safer defaults.
 
 # User
-Return the current user's profile. Include roles: {{include_roles}}. Redact: {{#each redact_fields}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}.
+Return the current user's profile. Include roles: {include_roles}. Redact: {% for field in redact_fields %}{field}{% if not loop.last %}, {% endif %}{% endfor %}.
 

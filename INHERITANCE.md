@@ -8,6 +8,7 @@
 - [What Gets Inherited](#what-gets-inherited)
 - [Override Behavior](#override-behavior)
 - [Package References](#package-references)
+- [File Type Support and References](#file-type-support-and-references)
 - [Working Examples](#working-examples)
 - [Advanced Patterns](#advanced-patterns)
 - [Troubleshooting](#troubleshooting)
@@ -79,6 +80,35 @@ Additional fintech-specific security requirements...
 - Must include the **full file path** within the package
 - Format: `"@namespace/package-name@version/path/to/file.prmd"`
 - The quotes are **REQUIRED** because `@` is reserved in YAML
+
+### Section-Based Content Override
+
+For **precise control** over inherited content, use section-based overrides to selectively replace, remove, or modify specific sections:
+
+```yaml
+---
+name: "Healthcare Security Audit"
+inherits: "./base-security-audit.prmd"
+override:
+  system-prompt: "./healthcare-system-prompt.md"
+  examples: null                                    # Remove section
+  compliance-requirements: "./hipaa-compliance.md" # Replace section
+---
+```
+
+**Key Benefits:**
+- **Selective Replacement**: Override only specific sections, not entire content
+- **Section Removal**: Remove sections that don't apply (set to `null`)
+- **File-Based Content**: Load override content from external files
+- **Backward Compatible**: Works alongside traditional inheritance
+
+**Section ID Discovery:**
+```bash
+# See available sections for override
+prompd show base-template.prmd --sections
+```
+
+**Complete Documentation**: See [SECTION-OVERRIDE.md](./SECTION-OVERRIDE.md) for full specification, examples, and CLI commands.
 
 ## What Gets Inherited
 
@@ -159,7 +189,7 @@ parameters:
 
 ### Content Override Pattern
 
-Content inheritance is **additive only**. To control content placement, use template syntax:
+Traditional content inheritance is **additive** (child content appends to parent). For precise content control, use section-based overrides or template syntax:
 
 ```yaml
 ---
@@ -171,11 +201,112 @@ inherits: "./base-audit.prmd"
 
 Additional analysis specific to this use case:
 
-{{{ parent.content }}}
+{{ parent.content  %}
 
 ## Post-Analysis Steps
 
 Follow-up actions after the base audit completes.
+```
+
+### YAML Fields vs Markdown Content
+
+**IMPORTANT**: YAML frontmatter fields and markdown content are completely separate systems:
+
+#### ✅ YAML Field Override (Works)
+```yaml
+# parent.prmd
+---
+system: "You are a general analyst"
+user: "Analyze the provided data"
+---
+# System Notes
+General analysis guidelines here.
+
+# User Instructions
+Follow standard procedures.
+```
+
+```yaml
+# child.prmd
+---
+inherits: "./parent.prmd"
+system: "You are a security expert"     # ✅ OVERRIDES parent YAML field
+user: "./users/security-analyst.prmd"   # ✅ OVERRIDES parent YAML field
+---
+# System Notes
+Security-specific guidelines here.
+
+# Additional Context
+Use advanced security frameworks.
+```
+
+**Result**: Child gets `system: "You are a security expert"` (YAML override) AND both parent + child markdown content (both `# System Notes` sections appear).
+
+#### ❌ Markdown Headers Don't Override YAML (Doesn't Work)
+```yaml
+# child.prmd
+---
+inherits: "./parent.prmd"
+# No system: field in YAML frontmatter
+---
+# System
+You are a security expert  # ❌ Does NOT override YAML system: field
+```
+
+**Result**: Child keeps parent's `system: "You are a general analyst"` from YAML. The `# System` markdown is just content.
+
+#### 🔄 Override Rules Summary
+- **YAML → YAML**: Child YAML fields completely override parent YAML fields ✅
+- **Markdown → Markdown**: Child markdown is appended to parent markdown ✅
+- **YAML → Markdown**: No interaction - completely separate ❌
+- **Markdown → YAML**: No interaction - completely separate ❌
+
+### No Partial Replacement
+
+**There is NO mechanism for partial replacement of markdown sections:**
+
+```yaml
+# parent.prmd with multiple sections
+---
+system: "You are an analyst"
+---
+# System Guidelines
+- Be thorough
+- Use data-driven approaches
+
+# User Instructions
+1. Read the document
+2. Identify key points
+3. Write summary
+
+# Quality Standards
+- Accuracy is critical
+- Cite sources
+```
+
+```yaml
+# child.prmd - CANNOT selectively replace sections
+---
+inherits: "./parent.prmd"
+---
+# System Guidelines
+- Focus on security vulnerabilities  # This gets ADDED, not REPLACED
+- Use security frameworks
+
+# New Section
+Additional child content here.
+```
+
+**Result**: Child gets ALL parent sections + ALL child sections. The child's `# System Guidelines` does NOT replace the parent's `# System Guidelines` - both appear in the final output.
+
+**To replace content, you must override at the YAML level:**
+```yaml
+# child.prmd - proper override
+---
+inherits: "./parent.prmd"
+system: "./systems/security-expert.prmd"  # ✅ REPLACES parent system YAML field
+---
+# Child-specific content only
 ```
 
 ### YAML Override Reference
@@ -257,11 +388,11 @@ parameters:
     default: basic
 ---
 
-# Security Audit for {{application_name}}
+# Security Audit for {application_name}
 
 ## Technology Stack
-- **Stack:** {{technology_stack}}
-- **Audit Scope:** {{audit_scope}}
+- **Stack:** {technology_stack}
+- **Audit Scope:** {audit_scope}
 
 ## Base Security Assessment
 
@@ -296,37 +427,37 @@ parameters:
 
 ## Advanced Security Testing
 
-{{#if imports.system}}Using {{imports.system}} methodology:{{/if}}
+{% if imports.system %}Using {imports.system} methodology:{% endif %}
 
 ### OWASP Top 10 Assessment
-{{#if imports.context.owasp-top-10}}
-Systematic evaluation against OWASP standards from {{imports.context.owasp-top-10}}.
-{{/if}}
+{% if imports.context.owasp-top-10 %}
+Systematic evaluation against OWASP standards from {imports.context['owasp-top-10']}.
+{% endif %}
 
 ### Penetration Testing Simulation
-{{#if imports.assistant}}
-{{imports.assistant}} approach to vulnerability discovery:
-{{/if}}
+{% if imports.assistant %}
+{imports.assistant} approach to vulnerability discovery:
+{% endif %}
 
 1. **Reconnaissance**
-   - Information gathering about {{application_name}}
-   - Technology fingerprinting for {{technology_stack}}
+   - Information gathering about {application_name}
+   - Technology fingerprinting for {technology_stack}
 
 2. **Vulnerability Discovery** 
    - Automated security scanning
-   - Manual security testing specific to {{technology_stack}}
+   - Manual security testing specific to {technology_stack}
 
 3. **Exploitation Assessment**
    - Safe proof-of-concept demonstrations
    - Risk scoring and impact analysis
 
-{{#if compliance_requirements}}
+{% if compliance_requirements %}
 ### Compliance Validation
 **Requirements Assessment:**
-{{#each compliance_requirements}}
-- **{{this}} Compliance:** Evaluate against {{this}} security controls
-{{/each}}
-{{/if}}
+{% for item in compliance_requirements %}
+- **{item} Compliance:** Evaluate against {item} security controls
+{% endfor %}
+{% endif %}
 ```
 
 ### Example 2: Package Inheritance
@@ -355,9 +486,9 @@ context:
 ### Regulatory Context
 Financial services require strict data protection standards including:
 
-{{#each financial_data_types}}
-- **{{this}}**: Enhanced protection requirements
-{{/each}}
+{% for item in financial_data_types %}
+- **{item}**: Enhanced protection requirements
+{% endfor %}
 
 ### PCI-DSS Compliance Focus
 - Card data encryption verification
@@ -534,6 +665,174 @@ To verify inheritance is working correctly:
 
 This inheritance system enables powerful composition while maintaining clear, traceable relationships between templates.
 
+## File Type Support and References
+
+### Supported File Types in YAML Fields
+
+You can reference external files in any YAML field (`system:`, `user:`, `assistant:`, `response:`, `context:`, `inherits:`). The system supports a wide range of file types with automatic processing:
+
+#### ✅ **Text Files (Direct Content)**
+```yaml
+system: "./prompts/system-prompt.txt"      # Plain text
+user: "./instructions/user-guide.md"       # Markdown
+assistant: "./responses/template.txt"      # Plain text
+context:
+  - "./data/sample-code.py"                # Python code
+  - "./config/settings.env"                # Environment file
+  - "./data/export.csv"                    # CSV data
+```
+
+#### ✅ **Structured Data (Formatted Output)**
+```yaml
+context:
+  - "./config/api-settings.json"           # → Pretty JSON with markdown
+  - "./deployment/k8s-config.yaml"         # → Formatted YAML with markdown
+  - "./data/database-schema.yml"           # → Structured YAML display
+```
+
+**Example Output:**
+```markdown
+## Context from api-settings.json
+
+# JSON Data from api-settings.json
+
+```json
+{
+  "base_url": "https://api.example.com",
+  "timeout": 30,
+  "retry_count": 3
+}
+```
+```
+
+#### ✅ **Binary Files (Automatic Extraction)**
+```yaml
+context:
+  - "./reports/analysis.xlsx"              # → Extracted as CSV/tabular data
+  - "./docs/manual.docx"                   # → Plain text extraction
+  - "./presentations/overview.pptx"        # → Slide text extraction
+  - "./documents/policy.pdf"               # → OCR text extraction
+  - "./assets/diagram.png"                 # → Metadata + description
+```
+
+**Supported Binary Formats:**
+- **Excel**: `.xlsx`, `.xlsm` → CSV/tabular data
+- **Word**: `.docx` → Plain text
+- **PowerPoint**: `.pptx`, `.pptm` → Slide text
+- **PDF**: `.pdf` → OCR text extraction
+- **Images**: `.png`, `.jpg`, `.jpeg`, `.gif`, `.bmp`, `.webp` → Metadata
+
+#### ✅ **Package File References**
+```yaml
+using:
+  - name: "@company/data-toolkit@1.0.0"
+    prefix: "@data"
+system: "@data/prompts/analyst.txt"        # Text from package
+context:
+  - "@data/samples/example.xlsx"           # Excel from package
+  - "@data/configs/settings.json"          # JSON from package
+  - "@prompd.io/security@1.0.0/contexts/owasp-guidelines.md"  # Direct package ref
+```
+
+### File Processing Behavior
+
+#### **Context Field (Multi-File)**
+Files in `context:` arrays are automatically extracted and included as separate sections:
+
+```yaml
+context:
+  - "./data/users.csv"
+  - "./config/settings.json"
+  - "./docs/README.md"
+```
+
+**Result:** Each file gets its own markdown section with extracted content.
+
+#### **Single Field References**
+Files in single fields (`system:`, `user:`, etc.) replace the field value:
+
+```yaml
+system: "./prompts/security-expert.txt"    # Field contains file content
+user: "./config/api-spec.json"             # Field contains formatted JSON
+```
+
+#### **Mixed Content**
+You can combine inline content with file references:
+
+```yaml
+system: |
+  You are a security analyst.
+
+  Use these API settings:
+
+context:
+  - "./config/api-settings.json"           # Auto-extracted in context section
+  - "./guidelines/security-checklist.md"   # Auto-extracted in context section
+---
+
+# Additional inline instructions here
+```
+
+### Error Handling
+
+#### **Missing Files**
+```yaml
+context:
+  - "./missing-file.txt"                   # → Warning: file not found
+  - "./existing-file.json"                 # → Processed normally
+```
+
+#### **Unsupported Binary Files**
+```yaml
+context:
+  - "./video.mp4"                          # → Included as filename reference
+  - "./archive.zip"                        # → Listed but not extracted
+```
+
+#### **Permission Errors**
+```yaml
+system: "./restricted-file.txt"            # → Error message in output
+```
+
+### Best Practices
+
+#### **File Organization**
+```
+project/
+├── prompts/
+│   ├── main.prmd
+│   ├── system-prompts/
+│   │   ├── analyst.txt
+│   │   └── reviewer.txt
+│   └── contexts/
+│       ├── guidelines.md
+│       ├── examples.json
+│       └── data.xlsx
+```
+
+#### **Relative Paths**
+Always use relative paths from the `.prmd` file location:
+```yaml
+# ✅ GOOD - relative to .prmd file
+system: "./system-prompts/analyst.txt"
+context: ["../shared/guidelines.md"]
+
+# ❌ AVOID - absolute paths
+system: "/full/path/to/file.txt"
+```
+
+#### **Package Organization**
+```yaml
+# ✅ GOOD - organized package structure
+using:
+  - name: "@company/security-toolkit@2.0.0"
+    prefix: "@sec"
+system: "@sec/prompts/security-analyst.txt"
+context:
+  - "@sec/checklists/owasp-top-10.md"
+  - "@sec/examples/vulnerability-report.json"
+```
+
 ## Real Working Examples
 
 Test these inheritance concepts with functional examples:
@@ -553,3 +852,103 @@ prompd validate prompd-base/examples/package-inheritance.prmd
 prompd compile prompd-base/examples/package-inheritance.prmd \
   --params domain="healthcare"
 ```
+
+## Future Enhancement: Section-Based Content Override
+
+### Current Limitation
+
+Currently, markdown content inheritance works by **simple concatenation** - parent content is placed first, followed by child content:
+
+```markdown
+<!-- Parent content -->
+# System Guidelines
+Follow these core principles...
+
+# Analysis Framework
+Use this structured approach...
+
+<!-- Child content (appended) -->
+# Custom Instructions
+Additional specific requirements...
+```
+
+This means you **cannot selectively override** specific markdown sections from the parent.
+
+### Proposed Section-Based Override Feature
+
+A future enhancement could enable **section-level content override** using markdown heading anchors:
+
+#### **Potential Syntax**
+```yaml
+---
+inherits: "./base-security-audit.prmd"
+override:
+  "#system-guidelines": "./custom-security-guidelines.md"
+  "#analysis-framework": null  # Remove this section
+  "#examples": "./domain-specific-examples.md"
+---
+
+# Additional Custom Sections
+This content would still be appended normally.
+```
+
+#### **Use Cases This Would Enable**
+
+1. **Template Specialization**:
+   ```yaml
+   # base-analysis.prmd has generic analysis framework
+   # child-security-analysis.prmd overrides with security-specific framework
+   override:
+     "#analysis-framework": "./security-analysis-framework.md"
+   ```
+
+2. **Section Removal**:
+   ```yaml
+   # Remove sections that don't apply to this specialization
+   override:
+     "#general-examples": null
+     "#common-pitfalls": null
+   ```
+
+3. **Multi-Domain Customization**:
+   ```yaml
+   # Same base template, different domain implementations
+   override:
+     "#domain-context": "./healthcare-context.md"
+     "#compliance-requirements": "./hipaa-requirements.md"
+   ```
+
+#### **Technical Implementation Notes**
+
+This feature would require:
+
+1. **Markdown Section Parsing**: Parse content into identified sections based on heading structure
+2. **Section ID Generation**: Convert headings to anchor IDs (`# System Guidelines` → `#system-guidelines`)
+3. **Merge Strategy**: Replace/remove specific sections while preserving others
+4. **Content Order Preservation**: Maintain logical section ordering from parent template
+
+#### **Current Workaround**
+
+Until this feature exists, use **YAML field overrides** for section-like content:
+
+```yaml
+# Parent defines generic sections
+system: "./base-system-prompt.txt"
+analysis: "./base-analysis-framework.md"
+
+# Child overrides specific sections
+system: "./specialized-system-prompt.txt"  # Overrides parent system
+# analysis: inherited from parent (not specified)
+additional: "./child-specific-content.md"
+```
+
+This provides similar functionality but requires structuring content as separate YAML fields rather than unified markdown content.
+
+### Impact
+
+Section-based override would make the inheritance system significantly more powerful for:
+- **Template specialization** across domains/industries
+- **Modular content management** with selective replacement
+- **Content library reuse** with precise customization
+
+However, it adds complexity to the compilation pipeline and requires careful consideration of section ordering, ID conflicts, and merge semantics.

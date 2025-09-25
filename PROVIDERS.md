@@ -78,7 +78,7 @@ Add any OpenAI-compatible API as a custom provider for maximum flexibility.
 ### Adding Custom Providers
 
 ```bash
-prompd provider add <name> <base_url> <models...> [options]
+prompd config provider add <name> <base_url> <models...> [options]
 ```
 
 **Parameters:**
@@ -95,7 +95,7 @@ prompd provider add <name> <base_url> <models...> [options]
 #### Groq (Fast Inference)
 ```bash
 # Add Groq with multiple models
-prompd provider add groq https://api.groq.com/openai/v1 \
+prompd config provider add groq https://api.groq.com/openai/v1 \
   llama-3.1-8b-instant \
   llama-3.1-70b-versatile \
   mixtral-8x7b-32768 \
@@ -108,7 +108,7 @@ prompd run prompt.prmd --provider groq --model llama-3.1-8b-instant
 #### Together AI
 ```bash
 # Add Together AI
-prompd provider add together https://api.together.xyz/v1 \
+prompd config provider add together https://api.together.xyz/v1 \
   "mistralai/Mixtral-8x7B-Instruct-v0.1" \
   "meta-llama/Llama-2-70b-chat-hf" \
   "NousResearch/Nous-Hermes-2-Mixtral-8x7B-DPO" \
@@ -122,7 +122,7 @@ prompd run prompt.prmd --provider together \
 #### LM Studio (Local GUI)
 ```bash
 # Add LM Studio local server
-prompd provider add lmstudio http://localhost:1234/v1 \
+prompd config provider add lmstudio http://localhost:1234/v1 \
   local-model
 
 # Use LM Studio
@@ -132,7 +132,7 @@ prompd run prompt.prmd --provider lmstudio --model local-model
 #### Fireworks AI
 ```bash
 # Add Fireworks AI
-prompd provider add fireworks https://api.fireworks.ai/inference/v1 \
+prompd config provider add fireworks https://api.fireworks.ai/inference/v1 \
   "accounts/fireworks/models/llama-v3-70b-instruct" \
   "accounts/fireworks/models/mixtral-8x7b-instruct" \
   --api-key fw_your_fireworks_key
@@ -145,7 +145,7 @@ prompd run prompt.prmd --provider fireworks \
 #### OpenRouter (Multiple Models via One API)
 ```bash
 # Add OpenRouter
-prompd provider add openrouter https://openrouter.ai/api/v1 \
+prompd config provider add openrouter https://openrouter.ai/api/v1 \
   "anthropic/claude-3-sonnet" \
   "openai/gpt-4" \
   "meta-llama/llama-3-70b-instruct" \
@@ -161,7 +161,7 @@ prompd run prompt.prmd --provider openrouter \
 ### List Providers
 ```bash
 # Show all providers (built-in and custom)
-prompd provider list
+prompd config provider list
 
 # Example output:
 # Built-in Providers:
@@ -177,10 +177,10 @@ prompd provider list
 ### Show Provider Details
 ```bash
 # Show detailed provider information
-prompd provider show <name>
+prompd config provider show <name>
 
 # Example:
-prompd provider show groq
+prompd config provider show groq
 # Provider: groq
 # Type: Custom (OpenAI-compatible)
 # Base URL: https://api.groq.com/openai/v1
@@ -194,28 +194,28 @@ prompd provider show groq
 ### Update Provider API Keys
 ```bash
 # Update API key for existing provider
-prompd provider setkey <name> <api_key>
+prompd config provider setkey <name> <api_key>
 
 # Example:
-prompd provider setkey groq gsk_new_api_key_here
+prompd config provider setkey groq gsk_new_api_key_here
 ```
 
 ### Remove Custom Providers
 ```bash
 # Remove with confirmation
-prompd provider remove <name>
+prompd config provider remove <name>
 
 # Remove without confirmation
-prompd provider remove <name> --yes
+prompd config provider remove <name> --yes
 
 # Example:
-prompd provider remove old-provider --yes
+prompd config provider remove old-provider --yes
 ```
 
 ## Configuration Management
 
 ### Configuration File
-Provider settings are stored in `~/.prmd/config.yaml`:
+Provider settings are stored in `~/.prompd/config.yaml`:
 
 ```yaml
 # Default provider and model
@@ -310,7 +310,7 @@ providers:
     max_tokens: 1000
 ---
 
-Analyze this code: {{code}}
+Analyze this code: {code}
 ```
 
 ### Usage with Provider Override
@@ -352,7 +352,7 @@ curl -X POST https://api.example.com/v1/chat/completions \
   }'
 
 # Add if compatible
-prompd provider add test-provider https://api.example.com/v1 test-model \
+prompd config provider add test-provider https://api.example.com/v1 test-model \
   --api-key your-key
 
 # Test with simple prompt
@@ -365,17 +365,17 @@ prompd run examples/basic/greeting.prmd \
 
 ### Set Global Defaults
 ```bash
-# Set default provider and model
-prompd config set default_provider anthropic
-prompd config set default_model claude-3-5-sonnet-20241022
+# View current configuration
+prompd config show
 
-# View current defaults
-prompd config get default_provider
-prompd config get default_model
+# Edit configuration file directly
+# File location: ~/.prompd/config.yaml
+# Set default_provider: anthropic
+# Set default_model: claude-3-5-sonnet-20241022
 ```
 
 ### Project-Specific Defaults
-Create a `.prmd/config.yaml` file in your project:
+Create a `.prompd/config.yaml` file in your project:
 
 ```yaml
 # Project-specific defaults
@@ -430,65 +430,61 @@ prompd run analysis.prmd --providers openai,anthropic,groq \
 
 ### Provider Health Monitoring
 ```bash
-# Check provider availability
-prompd provider health
+# Check provider availability by listing providers
+prompd config provider list
 
-# Example output:
-# Provider Health Status:
-#   ✓ openai (152ms) - All models available
-#   ✓ anthropic (89ms) - All models available  
-#   ✗ groq (timeout) - Service temporarily unavailable
-#   ✓ together (203ms) - 2/3 models available
+# Test connectivity by attempting to use provider
+prompd run examples/basic/greeting.prmd --provider <name> --model <model>
 ```
 
 ## Troubleshooting
 
 ### Connection Issues
 ```bash
-# Test provider connectivity
-prompd provider test <name>
-
 # Debug with verbose output
 prompd run prompt.prmd --provider <name> --verbose
 
 # Check network connectivity
 curl -I https://api.provider.com/v1/chat/completions
+
+# Verify provider configuration
+prompd config provider show <name>
 ```
 
 ### Authentication Problems
 ```bash
 # Verify API key is set
-prompd provider show <name>
+prompd config provider show <name>
 
-# Test authentication
-prompd provider test <name> --auth-only
+# Test authentication by attempting a simple run
+prompd run examples/basic/greeting.prmd --provider <name> --model <model>
 
 # Re-add provider with new key
-prompd provider remove <name> --yes
-prompd provider add <name> <url> <models> --api-key <new-key>
+prompd config provider remove <name> --yes
+prompd config provider add <name> <url> <models> --api-key <new-key>
 ```
 
 ### Model Not Available
 ```bash
 # List available models for provider
-prompd provider show <name>
+prompd config provider show <name>
 
 # Update provider model list
-prompd provider add <name> <url> <updated-models> --api-key <key>
+prompd config provider add <name> <url> <updated-models> --api-key <key>
 
 # Check provider's API documentation for current model names
 ```
 
 ### Performance Issues
 ```bash
-# Compare provider response times
-prompd provider benchmark \
-  --providers openai,anthropic,groq \
-  --prompt "Write a hello world function" \
-  --iterations 5
+# Compare provider response times manually
+time prompd run examples/basic/greeting.prmd --provider openai --model gpt-4o
+time prompd run examples/basic/greeting.prmd --provider anthropic --model claude-3-5-sonnet-20241022
+time prompd run examples/basic/greeting.prmd --provider groq --model llama-3.1-8b-instant
 
 # Use faster providers for development
-prompd config set default_provider groq
+# Edit ~/.prompd/config.yaml and set:
+# default_provider: groq
 ```
 
 ## Security Best Practices
@@ -521,17 +517,14 @@ prompd config set default_provider groq
 
 ### Updating Provider Configurations
 ```bash
-# Export current configuration
-prompd config export providers.yaml
+# View current configuration
+prompd config show
 
-# Edit configuration
-# ...
-
-# Import updated configuration  
-prompd config import providers.yaml
+# Edit configuration file directly
+# File location: ~/.prompd/config.yaml
 
 # Verify changes
-prompd provider list
+prompd config provider list
 ```
 
 ---

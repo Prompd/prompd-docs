@@ -65,8 +65,8 @@ prompd install @prompd.io/package-name --global
 
 ### Installation Locations
 
-- **Local Cache**: `./.prmd/cache/` (current directory)
-- **Global Cache**: `~/.prmd/cache/` (when using `--global` flag)
+- **Local Cache**: `./.prompd/cache/` (current directory)
+- **Global Cache**: `~/.prompd/cache/` (when using `--global` flag)
 - **Manifest**: `./manifest.json` (auto-created)
 
 ### Current Registry Status
@@ -83,7 +83,7 @@ prompd install @prompd.io/package-name --global
 #### CLI Installation ✅ **BACKEND FIXED - WORKING!**
 - **Backend Issue**: ✅ **RESOLVED** - Fixed MongoDB Binary object handling in download routes
 - **Search Command**: ✅ Works (reaches backend successfully)
-- **Registry Config**: ✅ Properly configured in `~/.prmd/config.yaml`
+- **Registry Config**: ✅ Properly configured in `~/.prompd/config.yaml`
 - **Package Discovery**: ✅ Registry discovery working (`/.well-known/registry.json`)
 - **Package Metadata**: ✅ Package metadata retrieval working (`/@scope/package`)
 - **Package Download**: ✅ Package download working (`/@scope/package/-/filename.pdpkg`)
@@ -153,12 +153,12 @@ prompd install "@prompd.io/api-toolkit@1.0.1"  # Backend works, CLI temp file is
 prompd list
 
 # Check installation directory
-ls -la ./.prmd/cache/
+ls -la ./.prompd/cache/
 ```
 
 ### Configuration File Location
 
-Registry configuration: `~/.prmd/config.yaml`
+Registry configuration: `~/.prompd/config.yaml`
 
 ```yaml
 registry:

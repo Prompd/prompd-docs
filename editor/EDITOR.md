@@ -82,7 +82,7 @@ Notes
 
 ## Config & Defaults
 
-- Backend honors `~/.prmd/config.yaml` defaults for provider/model
+- Backend honors `~/.prompd/config.yaml` defaults for provider/model
 - Env vars: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY` (optional, per-request preferred)
 - Discovery: lazy registry capability fetch; can be disabled for offline/CI
 

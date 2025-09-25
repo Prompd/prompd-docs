@@ -19,7 +19,7 @@ Prompd files (`.prmd`) are structured prompt definitions that combine YAML front
 ### Key Features
 - **YAML Frontmatter**: Structured metadata and parameters
 - **Markdown Content**: Human-readable prompt template
-- **Parameter Substitution**: Handlebars-style templating (`{{parameter}}`)
+- **Parameter Substitution**: Jinja2 templating with single braces (`{parameter}`)
 - **Inheritance**: Extend other templates via `inherits` field
 - **Package References**: Import from registry packages
 - **Context Files**: Include external data sources
@@ -44,7 +44,7 @@ parameters:
 ---
 
 # Markdown Content (optional if all content is in YAML fields)
-Your prompt content with {{parameter_name}} substitution...
+Your prompt content with {parameter_name} substitution...
 ```
 
 ## YAML Frontmatter
@@ -226,6 +226,32 @@ inherits: "../templates/analysis-base.prmd"
 inherits: "@prompd.io/security-toolkit@1.0.0/prompts/base-audit.prmd"
 ```
 
+#### `override` (object)
+Section-based content overrides for inherited templates. Provides precise control over which sections are replaced, removed, or preserved from the parent template.
+
+```yaml
+override:
+  system-prompt: "./custom-system-prompt.md"     # Replace section with file content
+  examples: "./domain-specific-examples.md"     # Replace section with file content
+  legacy-section: null                          # Remove section completely
+  # Sections not mentioned are preserved from parent
+```
+
+**Key Features:**
+- **Section IDs**: Must use kebab-case format (lowercase, hyphens only)
+- **File References**: Relative paths to content files containing replacement content
+- **Section Removal**: Set to `null` to remove sections entirely
+- **Selective Override**: Only specified sections are affected, others preserved
+- **File Types**: Supports all file types supported by the extraction system (markdown, text, JSON, YAML, PDF, Excel, etc.)
+
+**Section ID Discovery:**
+```bash
+# Discover available section IDs for override
+prompd show parent-template.prmd --sections
+```
+
+**Complete Documentation**: See [SECTION-OVERRIDE.md](./SECTION-OVERRIDE.md) for comprehensive examples and usage patterns.
+
 ### Context and References
 
 #### `context` (array)
@@ -287,104 +313,109 @@ categories: ["Security", "Code Analysis", "Compliance"]
 The Markdown section contains the actual prompt template with parameter substitution:
 
 ```markdown
-# Security Audit for {{application_name}}
+# Security Audit for {application_name}
 
 ## Application Profile
-- **Name:** {{application_name}}
-- **Technology Stack:** {{technology_stack}}
-- **Audit Scope:** {{audit_scope}}
+- **Name:** {application_name}
+- **Technology Stack:** {technology_stack}
+- **Audit Scope:** {audit_scope}
 
-{{#if compliance_requirements}}
+{% if compliance_requirements %}
 ## Compliance Requirements
-{{#each compliance_requirements}}
-- **{{this}}**: Evaluate against {{this}} security controls
-{{/each}}
-{{/if}}
+{% for requirement in compliance_requirements %}
+- **{requirement}**: Evaluate against {requirement} security controls
+{% endfor %}
+{% endif %}
 
 ## Analysis Instructions
 
-Perform a comprehensive security analysis of {{application_name}} built with {{technology_stack}}.
+Perform a comprehensive security analysis of {application_name} built with {technology_stack}.
 
-{{#switch audit_scope}}
-{{#case "basic"}}
+{% if audit_scope == "basic" %}
 ### Basic Security Review
 - Input validation assessment
 - Authentication mechanism review
 - Basic vulnerability scan
-{{/case}}
-{{#case "comprehensive"}}
+{% elif audit_scope == "comprehensive" %}
 ### Comprehensive Security Audit
 - Complete OWASP Top 10 assessment
 - Penetration testing simulation
 - Code security review
 - Infrastructure security evaluation
-{{/case}}
-{{#case "compliance"}}
+{% elif audit_scope == "compliance" %}
 ### Compliance-Focused Audit
-{{#each compliance_requirements}}
-- **{{this}} Compliance Assessment**
-{{/each}}
-{{/case}}
-{{/switch}}
+{% for requirement in compliance_requirements %}
+- **{requirement} Compliance Assessment**
+{% endfor %}
+{% endif %}
 ```
 
 ## Template Syntax
 
-Prompd uses Handlebars templating syntax for parameter substitution:
+Prompd uses Jinja2 templating with single braces for variables:
 
 ### Variable Substitution
-```handlebars
-{{parameter_name}}           # Simple substitution
-{{user.name}}               # Object property access
-{{items.[0]}}               # Array access
-{{{raw_html}}}              # Unescaped output (triple braces)
+```jinja2
+{parameter_name}            # Simple substitution (single braces)
+{user.name}                 # Object property access
+{items[0]}                  # Array access
+{name|upper}                # Filter: converts to uppercase
+{name|default('Anonymous')} # Default value if undefined
+{balance|default(0)}        # Default with numeric value
 ```
 
 ### Conditionals
-```handlebars
-{{#if condition}}
+```jinja2
+{% if condition %}
   Content when condition is true
-{{else}}
+{% else %}
   Content when condition is false
-{{/if}}
+{% endif %}
 
-{{#unless condition}}
-  Content when condition is false
-{{/unless}}
+{% if premium_user %}
+  Premium content here
+{% elif regular_user %}
+  Regular content here
+{% else %}
+  Guest content here
+{% endif %}
 ```
 
 ### Loops
-```handlebars
-{{#each items}}
-- {{this}}                  # Current item
-- {{@index}}: {{this}}      # With index
-{{#unless @last}}, {{/unless}}  # Not last item
-{{/each}}
+```jinja2
+{% for item in items %}
+- {item}
+{% endfor %}
 
-{{#each object}}
-- {{@key}}: {{this}}        # Object iteration
-{{/each}}
+{% for key, value in object.items() %}
+- {key}: {value}
+{% endfor %}
+
+{% for feature in premium_features %}
+- {feature}
+{% else %}
+  No features available
+{% endfor %}
 ```
 
-### Switch Statements
-```handlebars
-{{#switch variable}}
-{{#case "value1"}}
-  Content for value1
-{{/case}}
-{{#case "value2"}}
-  Content for value2
-{{/case}}
-{{#default}}
-  Default content
-{{/default}}
-{{/switch}}
+### Filters
+```jinja2
+{name|upper}                # Convert to uppercase
+{name|lower}                # Convert to lowercase
+{name|title}                # Title Case
+{description|truncate(100)} # Truncate to 100 characters
+{price|round(2)}            # Round to 2 decimal places
+{items|length}              # Get length of array/string
+{text|escape}               # HTML escape
 ```
 
 ### Comments
-```handlebars
-{{!-- This is a comment and won't appear in output --}}
-{{! Short comment }}
+```jinja2
+{# This is a comment and won't appear in output #}
+{#
+  Multi-line comment
+  Can span multiple lines
+#}
 ```
 
 ## Working Examples
@@ -436,69 +467,69 @@ context:
   - "./security-checklist.md"
 ---
 
-# Security Audit Report for {{application_name}}
+# Security Audit Report for {application_name}
 
 ## Application Overview
-- **Application:** {{application_name}}
-- **URL:** {{application_url}}
-- **Technology Stack:** {{technology_stack}}
-- **Audit Date:** {{current_date}}
+- **Application:** {application_name}
+- **URL:** {application_url}
+- **Technology Stack:** {technology_stack}
+- **Audit Date:** {current_date}
 
 ## Audit Scope
 
 This basic security audit focuses on the following priority areas:
-{{#each priority_areas}}
-- **{{this}}**: Critical security assessment
-{{/each}}
+{% for item in priority_areas %}
+- **{item}**: Critical security assessment
+{% endfor %}
 
 ## Security Assessment
 
 ### 1. Authentication Analysis
-Review the authentication mechanisms for {{application_name}}:
+Review the authentication mechanisms for {application_name}:
 
-- **Login Process**: Analyze the login flow for {{application_url}}
+- **Login Process**: Analyze the login flow for {application_url}
 - **Password Policies**: Evaluate password strength requirements
 - **Session Management**: Review session handling and timeout policies
 - **Multi-Factor Authentication**: Check for MFA implementation
 
-{{#if include_owasp_check}}
+{% if include_owasp_check %}
 ### 2. OWASP Top 10 Assessment
 
-Systematic evaluation of {{application_name}} against OWASP Top 10:
+Systematic evaluation of {application_name} against OWASP Top 10:
 
 1. **A01:2021 – Broken Access Control**
-   - Test authorization mechanisms in {{application_name}}
+   - Test authorization mechanisms in {application_name}
    - Verify user role separation and privilege escalation protection
 
 2. **A02:2021 – Cryptographic Failures**
    - Analyze data encryption in transit and at rest
-   - Review cryptographic implementations in {{technology_stack}}
+   - Review cryptographic implementations in {technology_stack}
 
 3. **A03:2021 – Injection**
    - Test for SQL, NoSQL, and command injection vulnerabilities
-   - Analyze input validation for {{technology_stack}} components
+   - Analyze input validation for {technology_stack} components
 
 4. **A04:2021 – Insecure Design**
-   - Review the security architecture of {{application_name}}
+   - Review the security architecture of {application_name}
    - Assess threat modeling and secure design principles
 
 5. **A05:2021 – Security Misconfiguration**
    - Evaluate server and application configuration
    - Check for unnecessary features, default accounts, and verbose error messages
 
-{{#each priority_areas}}
-**Priority Focus on {{this}}:**
-- Conduct enhanced testing for {{this}} vulnerabilities
+{% for item in priority_areas %}
+**Priority Focus on {item}:**
+- Conduct enhanced testing for {item} vulnerabilities
 - Document specific findings and remediation steps
-{{/each}}
-{{/if}}
+{% endfor %}
+{% endif %}
 
 ### 3. Technology-Specific Analysis
 
-For applications built with {{technology_stack}}:
+For applications built with {technology_stack}:
 
-{{#switch technology_stack}}
-{{#case "React + Express + MongoDB"}}
+{% if technology_stack %}
+{% elif technology_stack == "React + Express + MongoDB" %}
 **Frontend Security (React):**
 - XSS prevention and Content Security Policy
 - Secure handling of sensitive data in client-side code
@@ -514,14 +545,12 @@ For applications built with {{technology_stack}}:
 - NoSQL injection prevention
 - Database access controls and connection security
 - Data validation and schema enforcement
-{{/case}}
-{{#default}}
-**Technology Stack Security for {{technology_stack}}:**
+{% else %}
+**Technology Stack Security for {technology_stack}:**
 - Component-specific security considerations
 - Common vulnerabilities for this technology stack
 - Security best practices implementation review
-{{/default}}
-{{/switch}}
+{% endif %}
 
 ## Deliverables
 
@@ -546,17 +575,17 @@ For applications built with {{technology_stack}}:
 
 ## Testing Methodology
 
-This audit of {{application_name}} includes:
+This audit of {application_name} includes:
 
 1. **Automated Security Scanning**
-   - Web application vulnerability scanning of {{application_url}}
+   - Web application vulnerability scanning of {application_url}
    - Dependency vulnerability assessment
    - Configuration security review
 
 2. **Manual Security Testing**
    - Business logic testing
    - Authentication and session management testing
-   - Input validation testing for {{technology_stack}} components
+   - Input validation testing for {technology_stack} components
 
 3. **Code Review** (if source code available)
    - Security-focused static analysis
@@ -639,63 +668,59 @@ system: |
   - GraphQL security best practices
 ---
 
-# Comprehensive API Security Audit: {{application_name}}
+# Comprehensive API Security Audit: {application_name}
 
 ## API Security Profile
-- **Application:** {{application_name}}
-- **API Type:** {{api_type}}
-- **Base URL:** {{application_url}}
-- **Technology Stack:** {{technology_stack}}
-- **Data Sensitivity:** {{data_sensitivity_level}}
-- **Rate Limiting:** {{#if rate_limiting_enabled}}Enabled{{else}}⚠️ Not Implemented{{/if}}
+- **Application:** {application_name}
+- **API Type:** {api_type}
+- **Base URL:** {application_url}
+- **Technology Stack:** {technology_stack}
+- **Data Sensitivity:** {data_sensitivity_level}
+- **Rate Limiting:** {% if rate_limiting_enabled %}Enabled{% else %}⚠️ Not Implemented{% endif %}
 
 ## Authentication Architecture Analysis
 
-{{#each authentication_methods}}
-### {{this}} Authentication Analysis
-{{#switch this}}
-{{#case "jwt"}}
+{% for method in authentication_methods %}
+### {method} Authentication Analysis
+{% if method %}
+{% elif method == "jwt" %}
 **JWT Token Security Review:**
 - Token signature verification and algorithm security
 - Token expiration and refresh mechanisms
 - Claim validation and authorization logic
 - Token storage and transmission security
-{{/case}}
-{{#case "oauth2"}}
+{% elif method == "oauth2" %}
 **OAuth 2.0 Implementation Review:**
 - Authorization server security configuration
 - Grant type usage and security implications
 - Scope definition and enforcement
 - PKCE implementation for public clients
-{{/case}}
-{{#case "api-key"}}
+{% elif method == "api-key" %}
 **API Key Management Review:**
 - Key generation entropy and uniqueness
 - Key rotation and lifecycle management
 - Key transmission and storage security
 - Rate limiting per API key
-{{/case}}
-{{#default}}
-**{{this}} Security Assessment:**
+{% else %}
+**{item} Security Assessment:**
 - Implementation security review
 - Authentication bypass testing
 - Session management analysis
-{{/default}}
-{{/switch}}
-{{/each}}
+{% endif %}
+{% endfor %}
 
 ## OWASP API Security Top 10 Assessment
 
 ### API1:2023 Broken Object Level Authorization (BOLA)
-**Testing Focus for {{api_type}} API:**
-{{#each api_endpoints}}
-- **{{method}} {{path}}**: 
-  {{#if authentication_required}}✓ Authentication Required{{else}}⚠️ Public Endpoint{{/if}}
-  {{#if sensitive_data}}🔒 Sensitive Data{{/if}}
+**Testing Focus for {api_type} API:**
+{% for endpoint in api_endpoints %}
+- **{method} {path}**: 
+  {% if authentication_required %}✓ Authentication Required{% else %}⚠️ Public Endpoint{% endif %}
+  {% if sensitive_data %}🔒 Sensitive Data{% endif %}
   - Test object-level authorization controls
   - Verify user can only access their own resources
   - Check for horizontal privilege escalation
-{{/each}}
+{% endfor %}
 
 ### API2:2023 Broken Authentication
 **Authentication Security Review:**
@@ -706,43 +731,40 @@ system: |
 
 ### API3:2023 Broken Object Property Level Authorization
 **Data Exposure Analysis:**
-{{#switch data_sensitivity_level}}
-{{#case "restricted"}}
+{% if data_sensitivity_level %}
+{% elif data_sensitivity_level == "restricted" %}
 **CRITICAL**: Restricted data requires enhanced protection
 - Field-level authorization implementation
 - Sensitive data masking in responses
 - Audit logging for all data access
-{{/case}}
-{{#case "confidential"}}
+{% elif data_sensitivity_level == "confidential" %}
 **HIGH PRIORITY**: Confidential data security review
 - Data classification and handling procedures
 - Encryption for sensitive fields
 - Access control granularity
-{{/case}}
-{{#default}}
+{% else %}
 **Standard data protection assessment:**
 - Response data filtering
 - Unnecessary data exposure prevention
-{{/default}}
-{{/switch}}
+{% endif %}
 
 ### API4:2023 Unrestricted Resource Consumption
 **Rate Limiting and Resource Protection:**
-{{#if rate_limiting_enabled}}
+{% if rate_limiting_enabled %}
 ✅ **Rate Limiting Enabled** - Verify implementation:
 - Per-user/per-IP rate limits
 - Different limits for different endpoints
 - Rate limit bypass testing
 - Resource-intensive operation protection
-{{else}}
+{% else %}
 ❌ **CRITICAL VULNERABILITY**: No rate limiting detected
 - Implement rate limiting immediately
 - Protect against DoS attacks
 - Monitor resource consumption
 - Set up alerting for unusual usage patterns
-{{/if}}
+{% endif %}
 
-{{#if (eq api_type "graphql")}}
+{% if api_type == "graphql" %}
 ### GraphQL-Specific Security Testing
 **Query Complexity Analysis:**
 - Query depth limiting implementation
@@ -754,33 +776,33 @@ system: |
 - Field-level authorization implementation
 - Type-based access controls
 - Mutation authorization security
-{{/if}}
+{% endif %}
 
-{{#if (eq api_type "rest")}}
+{% if api_type == "rest" %}
 ### REST API Specific Testing
 **HTTP Method Security:**
-{{#each api_endpoints}}
-- **{{method}} {{path}}**: Method-specific security testing
+{% for endpoint in api_endpoints %}
+- **{method} {path}**: Method-specific security testing
   - Proper HTTP method usage
   - CORS configuration review
   - HTTP header security analysis
-{{/each}}
+{% endfor %}
 
 **Content-Type Security:**
 - Content-Type validation
 - XML/JSON parsing security
 - File upload security (if applicable)
-{{/if}}
+{% endif %}
 
 ## API Endpoint Security Analysis
 
-{{#each api_endpoints}}
-### {{method}} {{path}}
+{% for endpoint in api_endpoints %}
+### {method} {path}
 
 **Endpoint Risk Assessment:**
-- **Authentication Required:** {{#if authentication_required}}Yes{{else}}No (Public){{/if}}
-- **Sensitive Data:** {{#if sensitive_data}}Yes - Enhanced Testing{{else}}No{{/if}}
-- **Risk Level:** {{#if sensitive_data}}{{#if authentication_required}}Medium{{else}}HIGH{{/if}}{{else}}Low{{/if}}
+- **Authentication Required:** {% if authentication_required %}Yes{% else %}No (Public){% endif %}
+- **Sensitive Data:** {% if sensitive_data %}Yes - Enhanced Testing{% else %}No{% endif %}
+- **Risk Level:** {% if sensitive_data %}{% if authentication_required %}Medium{% else %}HIGH{% endif %}{% else %}Low{% endif %}
 
 **Security Testing Plan:**
 1. **Input Validation Testing**
@@ -789,30 +811,30 @@ system: |
    - Content-type confusion attacks
 
 2. **Authorization Testing**
-   {{#if authentication_required}}
+   {% if authentication_required %}
    - Valid token with insufficient privileges
    - Expired or invalid token handling
    - Token manipulation attempts
-   {{else}}
+   {% else %}
    - Public endpoint abuse testing
    - Excessive usage without authentication
-   {{/if}}
+   {% endif %}
 
 3. **Data Security Testing**
-   {{#if sensitive_data}}
+   {% if sensitive_data %}
    - Sensitive data exposure in responses
    - Data leakage through error messages
    - Unauthorized data modification attempts
-   {{/if}}
+   {% endif %}
 
-{{/each}}
+{% endfor %}
 
 ## Technology Stack Security Assessment
 
-**{{technology_stack}} Security Review:**
+**{technology_stack} Security Review:**
 
-{{#switch technology_stack}}
-{{#case "Node.js + Express + MongoDB"}}
+{% if technology_stack %}
+{% elif technology_stack == "Node.js + Express + MongoDB" %}
 **Node.js/Express API Security:**
 - Express middleware security configuration
 - Helmet.js security headers implementation
@@ -824,8 +846,7 @@ system: |
 - Connection string security
 - Database user privilege review
 - Query performance and DoS protection
-{{/case}}
-{{#case "Python + FastAPI + PostgreSQL"}}
+{% elif technology_stack == "Python + FastAPI + PostgreSQL" %}
 **FastAPI Security Features:**
 - Automatic OpenAPI documentation security
 - Dependency injection security
@@ -837,35 +858,31 @@ system: |
 - Database user access controls
 - Connection pooling security
 - Query performance monitoring
-{{/case}}
-{{#default}}
-**{{technology_stack}} Security Analysis:**
+{% else %}
+**{technology_stack} Security Analysis:**
 - Framework-specific security features review
 - Common vulnerabilities for this technology stack
 - Security best practices implementation
 - Third-party dependency security assessment
-{{/default}}
-{{/switch}}
+{% endif %}
 
 ## Compliance and Standards Assessment
 
-{{#switch data_sensitivity_level}}
-{{#case "restricted"}}
+{% if data_sensitivity_level %}
+{% elif data_sensitivity_level == "restricted" %}
 ### Regulatory Compliance Review
 **Enhanced compliance requirements for restricted data:**
 - Data residency and sovereignty requirements
 - Access logging and audit trails
 - Incident response procedures
 - Data retention and deletion policies
-{{/case}}
-{{#case "confidential"}}
+{% elif data_sensitivity_level == "confidential" %}
 ### Confidential Data Protection Standards
 - Encryption in transit and at rest
 - Key management security
 - Access control documentation
 - Regular security assessments
-{{/case}}
-{{/switch}}
+{% endif %}
 
 ## Security Testing Methodology
 
@@ -873,7 +890,7 @@ system: |
 1. **API Security Scanners**
    - OWASP ZAP API testing
    - Postman security test collections
-   - Custom fuzzing tools for {{api_type}} APIs
+   - Custom fuzzing tools for {api_type} APIs
 
 2. **Static Code Analysis** (if source code available)
    - Security-focused SAST tools
@@ -887,9 +904,9 @@ system: |
    - State manipulation attempts
 
 2. **Authentication Bypass Testing**
-   {{#each authentication_methods}}
-   - {{this}} specific bypass attempts
-   {{/each}}
+   {% for method in authentication_methods %}
+   - {item} specific bypass attempts
+   {% endfor %}
 
 3. **Data Validation Testing**
    - Boundary value testing
@@ -899,9 +916,9 @@ system: |
 ## Recommendations and Remediation
 
 ### Immediate Actions (Critical - 0-7 days)
-{{#unless rate_limiting_enabled}}
+{% if not rate_limiting_enabled %}
 - **URGENT**: Implement rate limiting across all endpoints
-{{/unless}}
+{% endif %}
 - Review and test all authentication mechanisms
 - Validate input sanitization for all endpoints
 
@@ -918,7 +935,7 @@ system: |
 
 ---
 
-**Assessment Standards:** This audit follows OWASP API Security Top 10, NIST API Security guidelines, and industry-specific compliance requirements for {{data_sensitivity_level}} data handling.
+**Assessment Standards:** This audit follows OWASP API Security Top 10, NIST API Security guidelines, and industry-specific compliance requirements for {data_sensitivity_level} data handling.
 ```
 
 ## Validation Rules
@@ -965,13 +982,13 @@ parameters:
 
 # ❌ INVALID - Undefined parameter in template
 # No 'undefined_param' in parameters array
-{{undefined_param}}
+{undefined_param}
 
 # ✅ VALID - Parameter defined in frontmatter
 parameters:
   - name: defined_param
     type: string
-{{defined_param}}
+{defined_param}
 ```
 
 ## Best Practices
@@ -1002,7 +1019,7 @@ project/
 - **Files**: `kebab-case.prmd` (e.g., `security-audit-comprehensive.prmd`)
 - **IDs**: `kebab-case` or `snake_case` (e.g., `security_audit_v2`)
 - **Parameters**: `snake_case` (e.g., `application_name`, `max_tokens`)
-- **Template variables**: `{{snake_case}}` (e.g., `{{application_name}}`)
+- **Template variables**: `{snake_case}` (e.g., `{application_name}`)
 
 ### Parameter Design
 - Use descriptive names and descriptions
