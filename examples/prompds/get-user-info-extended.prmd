@@ -4,8 +4,8 @@ version: 1.1.0
 description: Example prompt that imports a package with a prefix and also inherits from a local base
 
 using:
-  - package: "@prompd.io/api-toolkit@1.2.1"
-    prefix: api
+  - name: "@prompd.io/api-toolkit@1.2.1"
+    prefix: "@api"
 
 # Note: 'inherits' is singular; chain multiple bases by having the local base inherit the package base
 inherits: "./local-package.prompd"
@@ -28,4 +28,6 @@ You extend the base behavior to include extra validation and safer defaults.
 
 # User
 Return the current user's profile. Include roles: {include_roles}. Redact: {% for field in redact_fields %}{field}{% if not loop.last %}, {% endif %}{% endfor %}.
+
+
 
