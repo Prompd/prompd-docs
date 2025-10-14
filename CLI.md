@@ -97,7 +97,55 @@ prompd run prompt.prmd --provider openai --model gpt-4 \
 # Execute last committed version
 prompd run prompt.prmd --provider openai --model gpt-4 \
   --version HEAD
+
+# Pass array parameters (JSON syntax)
+prompd run prompt.prmd --provider openai --model gpt-4 \
+  -p tags='["api","backend","nodejs"]'
+
+# Pass object parameters (JSON syntax)
+prompd run prompt.prmd --provider openai --model gpt-4 \
+  -p user='{"name":"Alice","role":"admin"}'
+
+# Pass multiple arrays
+prompd run prompt.prmd --provider openai --model gpt-4 \
+  -p languages='["python","javascript"]' \
+  -p frameworks='["flask","express"]'
 ```
+
+#### Parameter Type Syntax
+
+**String parameters:**
+```bash
+-p name="John Doe"
+-p language=Python
+```
+
+**Number parameters:**
+```bash
+-p count=42
+-p price=19.99
+```
+
+**Boolean parameters:**
+```bash
+-p enabled=true
+-p debug=false
+```
+
+**Array parameters (JSON syntax):**
+```bash
+-p tags='["api","backend","nodejs"]'        # String array
+-p scores='[95,87,92]'                      # Number array
+-p flags='[true,false,true]'                # Boolean array
+```
+
+**Object parameters (JSON syntax):**
+```bash
+-p user='{"name":"Alice","email":"alice@example.com","role":"admin"}'
+-p config='{"timeout":30,"retries":3,"verbose":true}'
+```
+
+**Important:** Use single quotes `'` around JSON values (arrays/objects) and double quotes `"` inside the JSON.
 
 ### `prompd compile`
 
@@ -128,7 +176,15 @@ prompd compile prompt.prmd -p name=Bob -o rendered.txt
 
 # Combine command line and file parameters
 prompd compile prompt.prmd --param-file params.json -p override=value
+
+# Pass array parameters
+prompd compile prompt.prmd -p tags='["api","backend","nodejs"]'
+
+# Pass object parameters
+prompd compile prompt.prmd -p config='{"timeout":30,"retries":3}'
 ```
+
+**Note:** For array and object parameters, see the [Parameter Type Syntax](#parameter-type-syntax) section under `prompd run`.
 
 ### `prompd validate`
 
