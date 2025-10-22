@@ -954,7 +954,7 @@ system: |
 - Required parameters cannot have `null` defaults
 
 ### Template Validation
-- Handlebars syntax must be valid
+- Jinja2 syntax must be valid
 - Referenced parameters must be defined in frontmatter
 - Context files must exist (during compilation)
 - Package references must be properly quoted
