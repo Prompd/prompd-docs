@@ -52,7 +52,7 @@ This single document aggregates current, actionable information from repo Markdo
 ## Composable Architecture Overview
 - Source: COMPOSABLE-ARCHITECTURE.md
 - Core elements:
-  - .prmd = YAML frontmatter + Markdown (Jinja2/Handlebars templating allowed).
+  - .prmd = YAML frontmatter + Markdown (Jinja2 templating).
   - Composition: using (imports), inherits (override/extend).
   - Packaging: .pdpkg with manifest.json; publish/install via Registry; support multiple registries.
   - Versioning: semantic x.y.z; Git tags per file stem.

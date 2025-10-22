@@ -201,7 +201,7 @@ inherits: "./base-audit.prmd"
 
 Additional analysis specific to this use case:
 
-{{ parent.content  %}
+{parent.content}
 
 ## Post-Analysis Steps
 
