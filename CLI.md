@@ -821,6 +821,36 @@ prompd config providers     # Alias for 'prompd config provider list'
 prompd config registries    # Alias for 'prompd config registry list'
 ```
 
+### `prompd pack`
+
+Shortcut command for `prompd package create`. Creates a .pdpkg package from a directory.
+
+```bash
+prompd pack <source-directory> [output-file]
+```
+
+#### Options
+- `-n, --name TEXT` - Package name (overrides manifest.json)
+- `-V, --version TEXT` - Package version (overrides manifest.json)
+- `-d, --description TEXT` - Package description (overrides manifest.json)
+- `-a, --author TEXT` - Package author (overrides manifest.json)
+
+#### Examples
+
+```bash
+# Create package with explicit output filename
+prompd pack . my-package.pdpkg
+
+# Create package with auto-generated filename
+prompd pack ./my-project
+
+# Create package with metadata overrides
+prompd pack . my-package.pdpkg \
+  --name "@myorg/toolkit" \
+  --version "1.0.0" \
+  --description "My custom toolkit"
+```
+
 ### `prompd providers`
 
 List available LLM providers and their models.
