@@ -141,6 +141,19 @@ parameters:
 
 #### Parameter Types
 
+| Type | Description | Use when |
+|------|-------------|---------|
+| `string` | Plain text | Names, prompts, free-form input |
+| `number` | Integer or float | Any numeric value |
+| `integer` | Whole number only | Counts, limits, scale values |
+| `float` | Decimal number | Percentages, thresholds, temperatures |
+| `boolean` | `true` / `false` | Feature flags, toggles |
+| `array` | JSON array (untyped elements) | Lists of strings, numbers, or mixed values |
+| `object` | Plain key-value object (non-array) | Structured configuration |
+| `json` | Any JSON value — objects, arrays of objects, nested structures | Evaluation criteria, complex structured data |
+| `file` | File path; caller supplies the file content as a string | System prompts loaded from disk, context documents |
+| `base64` | Base64-encoded binary data | Images, PDFs, blobs for multimodal prompts |
+
 **String Parameters:**
 ```yaml
 - name: input_text
@@ -151,14 +164,14 @@ parameters:
   pattern: "^[a-zA-Z0-9\\s]+$"  # Regex validation
 ```
 
-**Number Parameters:**
+**Number / Integer / Float Parameters:**
 ```yaml
 - name: temperature
-  type: number
+  type: float
   minimum: 0.0
   maximum: 2.0
   default: 0.7
-  
+
 - name: max_tokens
   type: integer
   minimum: 1
@@ -202,6 +215,39 @@ parameters:
     provider: openai
     model: gpt-4o
     temperature: 0.7
+```
+
+**JSON Parameters** — use for arrays of objects, nested structures, or any complex JSON shape:
+```yaml
+- name: evaluation_criteria
+  type: json
+  required: true
+  description: "Array of criteria objects with name, description, and weight fields"
+```
+
+In templates, use the `fromjson` filter when the value arrives as a JSON string (e.g. via CLI `--param`). If passed via a params file, it is already parsed and `fromjson` passes it through unchanged:
+```
+{% set criteria = evaluation_criteria | fromjson %}
+{% for c in criteria %}
+### {{ c.name }} (weight: {{ c.weight }})
+{{ c.description }}
+{% endfor %}
+```
+
+**File Parameters** — file path; the caller resolves and passes the file content as a string:
+```yaml
+- name: system_context
+  type: file
+  required: false
+  description: "Path to a markdown file with additional system context"
+```
+
+**Base64 Parameters** — base64-encoded binary for multimodal prompts (images, PDFs, etc.):
+```yaml
+- name: screenshot
+  type: base64
+  required: true
+  description: "Base64-encoded PNG screenshot to analyze"
 ```
 
 **Enum Parameters:**
@@ -948,7 +994,7 @@ system: |
 
 ### Parameter Validation
 - Parameter names must be valid identifiers
-- Types must be supported (`string`, `number`, `integer`, `boolean`, `array`, `object`)
+- Types must be supported: `string`, `number`, `integer`, `float`, `boolean`, `array`, `object`, `json`, `file`, `base64`
 - Enum values must be arrays of strings
 - Default values must match parameter type
 - Required parameters cannot have `null` defaults
