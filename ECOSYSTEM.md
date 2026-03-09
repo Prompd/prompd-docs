@@ -224,7 +224,7 @@ Example manifest.json
   "name": "@prompd.io/security-toolkit",
   "version": "1.0.1",
   "description": "Security audit components for code, API, and infrastructure",
-  "author": "Logikbug",
+  "author": "Prompd LLC",
   "type": "package",
   "files": {
     "prompts": [
